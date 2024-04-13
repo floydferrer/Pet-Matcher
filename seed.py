@@ -1,8 +1,8 @@
-"""Seed database with sample data from CSV Files."""
+"""Seed database with PetFinder API tag data from Pet_Matcher_Tags.CSV."""
 
 from csv import DictReader
 from app import db
-from models import User, Pet, Tag
+from models import Tag
 from sqlalchemy import insert
 
 
@@ -14,7 +14,5 @@ with open('generator/Pet_Matcher_Tags.csv') as tags:
     db.session.execute(
         insert(Tag),
         DictReader(tags, fieldnames=fieldnames))
-# with open('generator/Pet_Matcher_Tags.csv') as tags:
-#     db.session.bulk_insert_mappings(Tag, DictReader(tags), render_nulls=True)
 
 db.session.commit()

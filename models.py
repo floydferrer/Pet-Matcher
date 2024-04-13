@@ -7,67 +7,14 @@ bcrypt = Bcrypt()
 db = SQLAlchemy()
 
 def connect_db(app):
-    """Connect this database to provided Flask app.
-
-    You should call this in your Flask app.
-    """
+    """Connect this database to provided Flask app"""
 
     db.app = app
     db.init_app(app)
 
-class Pet(db.Model):
-    """List of all PetFinder API pets that have desricptions matching questionnaire parameters"""
-    __tablename__ = 'pets'
-
-    id = db.Column(
-        db.Integer,
-        primary_key=True
-    )
-    
-    petfinder_id = db.Column(
-        db.Integer,
-        unique=True,
-        nullable=False
-    )
-
-    name = db.Column(
-        db.Text,
-        nullable=False
-    )
-
-    breed = db.Column(
-        db.Text,
-        nullable=False
-    )
-
-    age = db.Column(
-        db.Text,
-        nullable=False
-    )
-
-    gender = db.Column(
-        db.Text,
-        nullable=False
-    )
-    
-    photo = db.Column(
-        db.Text,
-        nullable=False
-    )
-
-    zip_code = db.Column(
-        db.Integer,
-        nullable=False
-    )
-    
-    tag = db.Column(
-        db.Text,
-        nullable=True
-    )
-
-
 class User(db.Model):
     """List of all Users who submitted a questionnaire. Can create an account to save results (optional)"""
+    
     __tablename__ = 'users'
 
     id = db.Column(
@@ -142,9 +89,7 @@ class User(db.Model):
 
     @classmethod
     def signup(cls, experienced_owner, kids, dogs, cats, lifestyle, home_type, qualities, zip_code, first_name, last_name, email, password, search_url):
-        """Sign up user.
-
-        Hashes password and adds user to system.
+        """Sign up user. Hashes password and adds user to system.
         """
 
         hashed_pwd = bcrypt.generate_password_hash(password).decode('UTF-8')
@@ -190,6 +135,7 @@ class User(db.Model):
 
 class Tag(db.Model):
     """List of all PetFinder API tags that have desricptions matching questionnaire parameters"""
+    
     __tablename__ = 'tags'
 
     id = db.Column(

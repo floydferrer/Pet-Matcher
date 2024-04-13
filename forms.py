@@ -21,8 +21,6 @@ class MatchForm(FlaskForm):
     home_type = RadioField('Describe your home size', choices=[('small', 'Small'), ('large', 'Medium'),  ('large', 'Large')], coerce=str, validators=[DataRequired()])
     zip_code = IntegerField('What is your zip code?', validators=[DataRequired()])
 
-    # tag_name,first_pet_owner,lifestyle,qualities,home_type
-
 class NewAccountForm(FlaskForm):
     """Form for creating new account"""
 
