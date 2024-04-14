@@ -27,6 +27,9 @@ toolbar = DebugToolbarExtension(app)
 connect_db(app)
 bcrypt = Bcrypt()
 
+
+################### API ###################
+
 def get_access_token(client_id, client_secret):
     """Generate new access token"""
     
@@ -39,53 +42,17 @@ def get_access_token(client_id, client_secret):
 
 authorization = get_access_token(client_id, client_secret)
 
-def do_login(user):
-    """Log in user"""
 
-    session['CURRUSER'] = user.id
-    if 'PARAMS' in session:
-        del session['PARAMS']
-    if 'RECOMMENDED_PETS' in session:
-        del session['RECOMMENDED_PETS']
-    if 'UPDATEFORM' in session:
-        del session['UPDATEFORM']
-    if 'responses' in session:
-        del session['responses']
+###################  Homepage ################### 
 
-def do_logout():
-    """Logout user and clear session variables"""
+@app.route('/', methods=['GET', 'POST'])
+def show_homepage():
+    """Pet Quiz Prompt Page"""
 
-    if 'CURRUSER' in session:
-        del session['CURRUSER']
-    if 'PARAMS' in session:
-        del session['PARAMS']
-    if 'RECOMMENDED_PETS' in session:
-        del session['RECOMMENDED_PETS']
-    if 'UPDATEFORM' in session:
-        del session['UPDATEFORM']
-    if 'responses' in session:
-        del session['responses']
+    return render_template('homepage.html')
 
 
-def submit_quiz(quiz_form):
-    """Handle pet quiz submission"""
-    
-    if 'CURRUSER' in session:
-        # Allows logged in user's to update quiz results instead of loading previously stored search parameters 
-        session['UPDATEFORM'] = True
-    
-    results = get_results(quiz_form)
-    pet_scores = save_results(results, quiz_form)
-    
-    # When returning to Recommended Pets page, allows recommended pets to display without sending new request to API
-    session['RECOMMENDED_PETS'] = rank_pets(pet_scores, results)
-    
-    if 'CURRUSER' in session:
-        user = User.query.get(session['CURRUSER'])
-        user.search_url = session['PARAMS']['search_url']
-        db.session.add(user)
-        db.session.commit()
-        flash(f'Recommended pets have been updated')           
+################### Results ################### 
 
 def get_results(val):
     """Retrieve pet results filtered by quiz answers"""
@@ -172,9 +139,6 @@ def save_results(results, val):
                             if t.qualities in val.qualities:
                                 animal['score'] += 1
         pet_scores[animal['id']] = animal['score']  
-        print(f"Name: {animal['name']}")
-        print(f"Pet ID: {animal['id']}")
-        print(f"Tag Score: {animal['score']}")
     return pet_scores
 
 def rank_pets(pet_scores, results):
@@ -201,46 +165,11 @@ def rank_pets(pet_scores, results):
             'url' : pet['url']
         }
         pet_counter += 1
-    print(f'Top Pet Scores: {top_pet_scores}')
-    print(f'Top Pet IDs: {top_pet_ids}')
     return recommended_pet
-
-def create_user(user_form):
-    """Create new user and save search parameters to user account"""
-    
-    hashed_pwd = bcrypt.generate_password_hash(user_form.password.data).decode('UTF-8')
-    new_user = User(
-        experienced_owner = session['PARAMS']['experienced_owner'], 
-        kids = session['PARAMS']['kids'], 
-        dogs = session['PARAMS']['dogs'], 
-        cats = session['PARAMS']['cats'], 
-        lifestyle = session['PARAMS']['lifestyle'], 
-        home_type = session['PARAMS']['home_type'], 
-        qualities = session['PARAMS']['qualities'], 
-        zip_code = session['PARAMS']['zip_code'], 
-        search_url = session['PARAMS']['search_url'],
-        first_name = user_form.first_name.data,
-        last_name = user_form.last_name.data,
-        email = user_form.email.data,
-        password = hashed_pwd
-    )
-    db.session.add(new_user)
-    db.session.commit()
-    return new_user
-
-### App Routes ###
-@app.route('/', methods=['GET', 'POST'])
-def show_homepage():
-    """Pet Quiz Prompt Page"""
-
-    return render_template('homepage.html')
 
 @app.route('/results')
 def display_pet_results():
     """Display pet results after login or updated pet results after logged in user submits new pet quiz"""
-    # if 'responses' in session:
-    #     if len(session['responses']) == 9 and 'RECOMMENDED_PETS' not in session:
-    #         submit_quiz(session['responses'])
     if 'CURRUSER' in session and 'RECOMMENDED_PETS' not in session:
         user = User.query.get(session['CURRUSER'])
         results = get_results(user.id)
@@ -265,8 +194,63 @@ def display_pet_results():
 
     return render_template('pet-results.html', pets=session['RECOMMENDED_PETS'])
     
+
+################### User ###################
+
+def do_login(user):
+    """Log in user"""
+
+    session['CURRUSER'] = user.id
+    if 'PARAMS' in session:
+        del session['PARAMS']
+    if 'RECOMMENDED_PETS' in session:
+        del session['RECOMMENDED_PETS']
+    if 'UPDATEFORM' in session:
+        del session['UPDATEFORM']
+    if 'responses' in session:
+        del session['responses']
+
+def do_logout():
+    """Logout user and clear session variables"""
+
+    if 'CURRUSER' in session:
+        del session['CURRUSER']
+    if 'PARAMS' in session:
+        del session['PARAMS']
+    if 'RECOMMENDED_PETS' in session:
+        del session['RECOMMENDED_PETS']
+    if 'UPDATEFORM' in session:
+        del session['UPDATEFORM']
+    if 'responses' in session:
+        del session['responses']
+
+def create_user(user_form):
+    """Create new user and save search parameters to user account"""
+    
+    hashed_pwd = bcrypt.generate_password_hash(user_form.password.data).decode('UTF-8')
+    new_user = User(
+        experienced_owner = session['PARAMS']['experienced_owner'], 
+        kids = session['PARAMS']['kids'], 
+        dogs = session['PARAMS']['dogs'], 
+        cats = session['PARAMS']['cats'], 
+        lifestyle = session['PARAMS']['lifestyle'], 
+        home_type = session['PARAMS']['home_type'], 
+        qualities = session['PARAMS']['qualities'], 
+        zip_code = session['PARAMS']['zip_code'], 
+        search_url = session['PARAMS']['search_url'],
+        first_name = user_form.first_name.data,
+        last_name = user_form.last_name.data,
+        email = user_form.email.data,
+        password = hashed_pwd
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    return new_user
+
 @app.route('/success')
 def confirm_login():
+    """ Handle User Authentication"""
+
     if 'CURRUSER' in session and 'PARAMS' not in session and 'RECOMMENDED_PETS' not in session and 'UPDATEFORM' not in session and 'responses' not in session:
         user = User.query.get(session['CURRUSER'])
         flash(f'Welcome back, {user.first_name}!')
@@ -276,18 +260,6 @@ def confirm_login():
     else:
         flash(f'Please login first!')
     return redirect('/login')
-    
-@app.route('/form-complete')
-def handle_form_completion():
-    if len(session['responses']) == 9:
-        return render_template('form-complete.html')
-    flash(f'Please complete quiz!')
-    return redirect('/')
-
-@app.route('/submit')
-def handle_form_submission():
-    submit_quiz(session['responses'])
-    return redirect('/results')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def add_user():
@@ -295,12 +267,16 @@ def add_user():
     
     form = NewAccountForm()
     if form.validate_on_submit():
-        if 'PARAMS' in session:
-            new_user = create_user(form)
-            session['CURRUSER'] = new_user.id
-            flash(f'User has been created')
-            return redirect('/results')
-        # ADD CODE HERE: Prevent new account creation before pet quiz is completed
+        try:
+            if 'PARAMS' in session:
+                new_user = create_user(form)
+                session['CURRUSER'] = new_user.id
+                flash(f'User has been created')
+                return redirect('/results')
+        except IntegrityError:
+            flash("Email already taken")
+            return render_template('signup.html', form=form)
+        flash("Please complete quiz first!")
     return render_template('signup.html', form=form)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -329,13 +305,31 @@ def logout_user():
     flash('Successfully logged out!')
     return redirect('/login')
 
-@app.route('/reset', methods=['POST'])
-def reset_responses():
-    session['responses'] = []
-    return redirect('/questions/0')
+
+################### Quiz ###################
 
 question_forms = ['MatchForm1', 'MatchForm2', 'MatchForm3', 'MatchForm4', 'MatchForm5', 'MatchForm6', 'MatchForm7', 'MatchForm8', 'MatchForm9']
 question_labels = ['experienced_owner', 'pet_type', 'kids', 'dogs', 'cats', 'lifestyle', 'qualities', 'home_type', 'zip_code']
+
+def submit_quiz(quiz_form):
+    """Handle pet quiz submission"""
+    
+    if 'CURRUSER' in session:
+        # Allows logged in user's to update quiz results instead of loading previously stored search parameters 
+        session['UPDATEFORM'] = True
+    
+    results = get_results(quiz_form)
+    pet_scores = save_results(results, quiz_form)
+    
+    # When returning to Recommended Pets page, allows recommended pets to display without sending new request to API
+    session['RECOMMENDED_PETS'] = rank_pets(pet_scores, results)
+    
+    if 'CURRUSER' in session:
+        user = User.query.get(session['CURRUSER'])
+        user.search_url = session['PARAMS']['search_url']
+        db.session.add(user)
+        db.session.commit()
+        flash(f'Recommended pets have been updated')
 
 @app.route('/questions/<int:q>', methods=['GET', 'POST'])
 def show_question(q):
@@ -359,3 +353,20 @@ def show_question(q):
         flash('Please complete current question!')
         return redirect(f'/questions/{len(session["responses"])}')
     return render_template(f'questions/{q}.html', q=int(q)+1, form=form, question_labels=question_labels)
+
+@app.route('/form-complete')
+def handle_form_completion():
+    if len(session['responses']) == 9:
+        return render_template('form-complete.html')
+    flash(f'Please complete quiz!')
+    return redirect('/')
+
+@app.route('/submit')
+def handle_form_submission():
+    submit_quiz(session['responses'])
+    return redirect('/results')
+
+@app.route('/reset', methods=['POST'])
+def reset_responses():
+    session['responses'] = []
+    return redirect('/questions/0')
