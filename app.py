@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, flash, redirect, session, g, jsonify, json
+from flask import Flask, render_template, request, flash, redirect, session, json
 from flask_debugtoolbar import DebugToolbarExtension
 from flask_bcrypt import Bcrypt
 import requests, itertools
