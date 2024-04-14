@@ -3,7 +3,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from flask_bcrypt import Bcrypt
 import requests, itertools
 from sqlalchemy.exc import IntegrityError
-from forms import MatchForm, NewAccountForm, LoginForm
+from forms import MatchForm1, MatchForm2, MatchForm3, MatchForm4, MatchForm5, MatchForm6, MatchForm7, MatchForm8, MatchForm9, NewAccountForm, LoginForm
 from models import db, connect_db, User, Tag
 
 client_id = 'kK4MSKCnl6f8CT0w7qPg9c9VfwfOFPfdQe8CUcPfxWLxMbvQXI'
@@ -11,9 +11,6 @@ client_secret = 'D31cBJy3f7LMBCU8tgyNMqoNlmmG3JdD1Hhn4ZhA'
 grant_type = 'client_credentials'
 
 API_BASE_URL = 'https://api.petfinder.com/v2/animals'
-
-results = []
-search_params = ''
 
 app = Flask(__name__)
 
@@ -52,6 +49,8 @@ def do_login(user):
         del session['RECOMMENDED_PETS']
     if 'UPDATEFORM' in session:
         del session['UPDATEFORM']
+    if 'responses' in session:
+        del session['responses']
 
 def do_logout():
     """Logout user and clear session variables"""
@@ -64,6 +63,8 @@ def do_logout():
         del session['RECOMMENDED_PETS']
     if 'UPDATEFORM' in session:
         del session['UPDATEFORM']
+    if 'responses' in session:
+        del session['responses']
 
 
 def submit_quiz(quiz_form):
@@ -79,25 +80,12 @@ def submit_quiz(quiz_form):
     # When returning to Recommended Pets page, allows recommended pets to display without sending new request to API
     session['RECOMMENDED_PETS'] = rank_pets(pet_scores, results)
     
-    # Since new account creation is optional after quiz is completed created, Search parameters are stored in session to complete new account creation
-    session['PARAMS'] = {
-        'experienced_owner': quiz_form.experienced_owner.data, 
-        'kids': quiz_form.kids.data, 
-        'dogs': quiz_form.dogs.data, 
-        'cats': quiz_form.cats.data, 
-        'lifestyle': quiz_form.lifestyle.data, 
-        'home_type': quiz_form.home_type.data, 
-        'qualities': list(quiz_form.qualities.data), 
-        'zip_code': quiz_form.zip_code.data, 
-        'search_url': search_params
-    }
-    
     if 'CURRUSER' in session:
         user = User.query.get(session['CURRUSER'])
         user.search_url = session['PARAMS']['search_url']
         db.session.add(user)
         db.session.commit()
-        flash(f'Recommended pets have been updated', 'success')           
+        flash(f'Recommended pets have been updated')           
 
 def get_results(val):
     """Retrieve pet results filtered by quiz answers"""
@@ -105,25 +93,36 @@ def get_results(val):
     headers = {'Authorization': authorization}
     current_page = 1
     results = []
-    global search_params
     
     # Set search parameters for new quiz submissions (new users) or updating search parameters for updated quiz submissions (current users)
     if 'CURRUSER' not in session or ('CURRUSER' in session and 'UPDATEFORM' in session):
-        params = f'location={val.zip_code.data}&distance=25&limit=100&status=adoptable'
-        if val.pet_type.data == 'dog':
+        params = f'location={session["responses"][8]}&distance=25&limit=100&status=adoptable'
+        if session['responses'][1] == 'dog':
             params += '&type=dog'
-        if val.pet_type.data == 'cat':
+        if session['responses'][1] == 'cat':
             params += '&type=cat'
-        if val.kids.data == 'kidshouse':
+        if session['responses'][2] == 'kidshouse':
             params += '&good_with_children=true'
-        if val.dogs.data == 'doghouse':
+        if session['responses'][3] == 'doghouse':
             params += '&good_with_dogs=true'
-        if val.cats.data == 'cathouse':
+        if session['responses'][4] == 'cathouse':
             params += '&good_with_cats=true'
+        
+        # Since new account creation is optional after quiz is completed created, Search parameters are stored in session to complete new account creation
+        session['PARAMS'] = {
+            'experienced_owner': session['responses'][0], 
+            'kids': session['responses'][2], 
+            'dogs': session['responses'][3], 
+            'cats': session['responses'][4], 
+            'lifestyle': session['responses'][5], 
+            'qualities': session['responses'][6],
+            'home_type': session['responses'][7],             
+            'zip_code': session['responses'][8], 
+            'search_url': params
+        }
     else:
         user = User.query.get_or_404(val)
         params = f'location={user.zip_code}&distance=25&limit=100&status=adoptable{user.search_url}'
-    search_params = params
     r = requests.get(f'{API_BASE_URL}?{params}&page=1', headers=headers)
     res = r.json()
     page_count = res['pagination']['total_pages']
@@ -136,6 +135,7 @@ def get_results(val):
         for animal in res['animals']:
             results.append(animal)
         current_page += 1
+    
     return results
 
 def save_results(results, val):
@@ -152,15 +152,15 @@ def save_results(results, val):
                 if t != None:
                     # Pet Scoring for new users/current users retaking quiz (takes in form data) or current users logging in (takes in user data)
                     if 'CURRUSER' not in session or ('CURRUSER' in session and 'UPDATEFORM' in session):
-                        if t.pet_owner == val.experienced_owner.data:
+                        if t.pet_owner == session['responses'][0]:
                             animal['score'] += 1
-                        if t.lifestyle == val.lifestyle.data:
-                            animal['score'] += 1
-                        if t.home_size == val.home_type.data:
+                        if t.lifestyle == session['responses'][5]:
                             animal['score'] += 1
                         if t.qualities != None:
-                            if t.qualities in val.qualities.data:
+                            if t.qualities in session['responses'][6]:
                                 animal['score'] += 1
+                        if t.home_size == session['responses'][7]:
+                            animal['score'] += 1
                     else:
                         if t.pet_owner == val.experienced_owner:
                             animal['score'] += 1
@@ -231,25 +231,16 @@ def create_user(user_form):
 ### App Routes ###
 @app.route('/', methods=['GET', 'POST'])
 def show_homepage():
-    """Render Pet Quiz page"""
-    
-    global recommended_pet
-    global results
-    form = MatchForm()
-    if form.validate_on_submit():
-        if len(form.qualities.data) < 4:
-            submit_quiz(form)
-            return redirect('/results')
-        else:
-            flash('Pick no more than 3 qualities!')
-            return render_template('homepage.html', form=form)
-    return render_template('homepage.html', form=form)
+    """Pet Quiz Prompt Page"""
+
+    return render_template('homepage.html')
 
 @app.route('/results')
 def display_pet_results():
     """Display pet results after login or updated pet results after logged in user submits new pet quiz"""
-    
-    global recommended_pet
+    # if 'responses' in session:
+    #     if len(session['responses']) == 9 and 'RECOMMENDED_PETS' not in session:
+    #         submit_quiz(session['responses'])
     if 'CURRUSER' in session and 'RECOMMENDED_PETS' not in session:
         user = User.query.get(session['CURRUSER'])
         results = get_results(user.id)
@@ -268,12 +259,35 @@ def display_pet_results():
         user.search_url = session['PARAMS']['search_url']
         db.session.add(user)
         db.session.commit()
-    # Prevent new account creation before pet quiz is completed
-    elif 'CURRUSER' not in session and 'PARAMS' not in session:
-        flash(f'Please complete quiz first!', 'warning')
+    elif 'CURRUSER' not in session and 'responses' not in session:
+        flash(f'Please complete quiz first!')
         return redirect('/')
 
     return render_template('pet-results.html', pets=session['RECOMMENDED_PETS'])
+    
+@app.route('/success')
+def confirm_login():
+    if 'CURRUSER' in session and 'PARAMS' not in session and 'RECOMMENDED_PETS' not in session and 'UPDATEFORM' not in session and 'responses' not in session:
+        user = User.query.get(session['CURRUSER'])
+        flash(f'Welcome back, {user.first_name}!')
+        return render_template('login-success.html')
+    if 'CURRUSER' in session:
+        flash(f'Already logged in!')
+    else:
+        flash(f'Please login first!')
+    return redirect('/login')
+    
+@app.route('/form-complete')
+def handle_form_completion():
+    if len(session['responses']) == 9:
+        return render_template('form-complete.html')
+    flash(f'Please complete quiz!')
+    return redirect('/')
+
+@app.route('/submit')
+def handle_form_submission():
+    submit_quiz(session['responses'])
+    return redirect('/results')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def add_user():
@@ -284,8 +298,9 @@ def add_user():
         if 'PARAMS' in session:
             new_user = create_user(form)
             session['CURRUSER'] = new_user.id
-            flash(f'User has been created', 'success')
+            flash(f'User has been created')
             return redirect('/results')
+        # ADD CODE HERE: Prevent new account creation before pet quiz is completed
     return render_template('signup.html', form=form)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -300,10 +315,9 @@ def login_user():
 
         if user:
             do_login(user)
-            flash(f"Welcome back, {user.first_name}!", "success")
-            return redirect("/results")
+            return redirect('/success')
 
-        flash("Invalid credentials.", 'danger')
+        flash("Invalid credentials.")
 
     return render_template('login.html', form=form)
 
@@ -312,5 +326,36 @@ def logout_user():
     """Handle logout of user"""
     
     do_logout()
-    flash('Successfully logged out!', 'success')
+    flash('Successfully logged out!')
     return redirect('/login')
+
+@app.route('/reset', methods=['POST'])
+def reset_responses():
+    session['responses'] = []
+    return redirect('/questions/0')
+
+question_forms = ['MatchForm1', 'MatchForm2', 'MatchForm3', 'MatchForm4', 'MatchForm5', 'MatchForm6', 'MatchForm7', 'MatchForm8', 'MatchForm9']
+question_labels = ['experienced_owner', 'pet_type', 'kids', 'dogs', 'cats', 'lifestyle', 'qualities', 'home_type', 'zip_code']
+
+@app.route('/questions/<int:q>', methods=['GET', 'POST'])
+def show_question(q):
+    form = globals()[question_forms[q]]()
+    if form.validate_on_submit():
+        if form[question_labels[q]].label.field_id == 'qualities':
+            if len(form[question_labels[q]].data) >= 4:
+                flash('Pick no more than 3 qualities!')
+                return render_template(f'questions/{q}.html', q=int(q)+1, form=form, question_labels=question_labels)
+        responses = session['responses']
+        responses.append(form[question_labels[q]].data)
+        session['responses'] = responses
+        if q == 8:
+            return redirect('/form-complete')
+        return redirect(f'/questions/{q+1}')
+    while int(q) < len(session['responses']):
+        responses = session['responses']
+        responses.pop()
+        session['responses'] = responses
+    if (len(session['responses']) < int(q)):
+        flash('Please complete current question!')
+        return redirect(f'/questions/{len(session["responses"])}')
+    return render_template(f'questions/{q}.html', q=int(q)+1, form=form, question_labels=question_labels)

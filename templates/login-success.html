@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Pet Matcher{% endblock %}
+{% block script %}
+    <script>
+        function navigate() {
+            window.location.href = 'results';  // redirect when done!
+        }
+        setTimeout(() => {
+            navigate();
+            }, 500);
+        fetch('success').then(setTimeout); // load the slow url then navigate
+  </script>
+{% endblock%}
+{% block content %}
+  <div class="container-fluid">    
+    <div class="row text-center">
+        <h2 class="join-message my-4">Login successful! Now loading matches...</h2>
+    </div>
+    <div class="row d-flex justify-content-center">
+        <dotlottie-player class="" src="https://lottie.host/da5c8a12-3189-4047-865b-67fb79b7ed99/DvxtmTergF.json" background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay></dotlottie-player>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Question 1{% endblock %}
+{% block content %}
+
+<div class="container-fluid pet-form d-flex justify-content-center mt-4">
+  <form method="POST" id="user_form">
+    {{ form.hidden_tag() }}
+        
+    {% if form[question_labels[q-1]].widget.input_type != 'hidden' %}
+      {% for error in form[question_labels[q-1]].errors %}
+        <span class="text-danger">{{ error }}</span>
+      {% endfor %}
+      <div class="question">
+        {{ form[question_labels[q-1]].label.text }}
+      </div>
+      {% if form[question_labels[q-1]].label.field_id == 'zip_code' %}
+        {{ form[question_labels[q-1]](min=1001, max=99901, class="") }}
+      {% elif form[question_labels[q-1]].label.text == 'Pick up to 3 dog qualities' %}
+        {{ form[question_labels[q-1]].query_factory }}
+      {% else %}  
+        {{ form[question_labels[q-1]](class="answer") }}  
+      {% endif %}
+    {% endif %}
+
+    <button class="btn btn-lg btn-block">Next Question</button>
+  </form>
+</div>
+
+{% endblock %}
