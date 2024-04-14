@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, request, flash, redirect, session, json
 from flask_debugtoolbar import DebugToolbarExtension
 from flask_bcrypt import Bcrypt
@@ -6,15 +7,17 @@ from sqlalchemy.exc import IntegrityError
 from forms import MatchForm1, MatchForm2, MatchForm3, MatchForm4, MatchForm5, MatchForm6, MatchForm7, MatchForm8, MatchForm9, NewAccountForm, LoginForm
 from models import db, connect_db, User, Tag
 
+
 client_id = 'kK4MSKCnl6f8CT0w7qPg9c9VfwfOFPfdQe8CUcPfxWLxMbvQXI'
-client_secret = 'D31cBJy3f7LMBCU8tgyNMqoNlmmG3JdD1Hhn4ZhA'
+client_secret = os.environ.get('SECRET_KEY')
 grant_type = 'client_credentials'
 
 API_BASE_URL = 'https://api.petfinder.com/v2/animals'
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///pet_matcher'
+database_url = os.environ.get('DATABASE_URL', 'postgresql:///pet_matcher')
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
 app.app_context().push()
 
