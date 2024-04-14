@@ -101,12 +101,16 @@ def get_results(val):
     for animal in res['animals']:
         results.append(animal)
     current_page += 1
-    while current_page <= page_count:
-        r = requests.get(f'{API_BASE_URL}?{params}&page={current_page}', headers=headers)
-        res = r.json()
-        for animal in res['animals']:
-            results.append(animal)
-        current_page += 1
+    # while current_page <= page_count:
+    #     r = requests.get(f'{API_BASE_URL}?{params}&page={current_page}', headers=headers)
+    #     res = r.json()
+    #     for animal in res['animals']:
+    #         results.append(animal)
+    #     current_page += 1
+    r = requests.get(f'{API_BASE_URL}?{params}&page=1', headers=headers)
+    res = r.json()
+    for animal in res['animals']:
+        results.append(animal)
     
     return results
 
